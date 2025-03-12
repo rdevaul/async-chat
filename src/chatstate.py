@@ -6,6 +6,7 @@ interaction.  Created by Rich DeVaul, @rdevaul on Github, X
 """
 
 import asyncio
+import re
 
 class Reply:
     """Class representing a reply object, media type support is subject to chat client"""
@@ -16,7 +17,7 @@ class Reply:
         self.content = content
         if reply_type not in self.replytypes:
             raise Exception(f'bad reply_type in Reply init: {reply_type}')
-        self.reply_type = reply_typ
+        self.reply_type = reply_type
 
     def asdict(self):
         """Produce Python3 dictionary representation of the Reply instance"""
@@ -65,12 +66,12 @@ def dict2user(dct):
 class ChatState:
     """Class instance represents chat state machine"""
     
-    async def default_send(client_id,message):
+    async def default_send(client_id,reply):
         """placeholder user message function, which is just a print
         statement. You will almost always want to use something else.
 
         """ 
-        print(f"{x}: {y.content}")
+        print(f"{client_id}: {reply.content}")
     
     def __init__(self,
                  state_machine,
@@ -133,7 +134,7 @@ class ChatState:
         """Add a new user"""
         client_id = newuser.client_id
         self.users[client_id] = newuser
-        self.states[client_id] = undefined
+        self.states[client_id] = {'history': [ ]}
 
     def updateUserState(self,client_id,nstate):
         """ use a revised state to update the existing user state"""
@@ -143,7 +144,7 @@ class ChatState:
         state = None
         nextstate = None
         fn = None
-        if self.checkState(client_id):
+        if self.checkUser(client_id):
             state = self.states[client_id]
             nextstate = state['nextstate']
             fn = self.funct[nextstate]
@@ -164,7 +165,7 @@ class ChatState:
         # value which is a string indicating next state.
         reply, rval = fn(self,client_id,state)
         # debugging
-        print(f'graph: {self.graph[nextstate]}')
+        # print(f'graph: {self.graph[nextstate]}')
         # check to make sure next state is legal
         if rval not in self.graph[nextstate]:
             raise Exception(f'Bad state transition from {nextstate} to {rval}')
@@ -219,9 +220,9 @@ def makeWrapper(regex_list,function_list,state_function):
 
     def wrapper(cs,client_id,state):
         message = state["reply"].content
-        rval = process_command(message,
-                               regex_list, function_list,
-                               cs,client_id,state)
+        rval = process_commands(message,
+                                regex_list, function_list,
+                                cs,client_id,state)
         if not rval:
             return state_function(cs,client_id,state)
         return rval

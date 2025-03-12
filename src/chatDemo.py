@@ -3,6 +3,8 @@
 
 from chatstate import Reply, User, ChatState, makeWrapper
 
+import asyncio
+
 import re
 import colorama
 from colorama import Fore, Back, Style
@@ -67,14 +69,14 @@ def auth(cs,client_id,state):
     
     reply = None
     rval = None
-    if counter > 5:             # too many tries
+    if counter > 4:             # too many tries
         reply = Reply('Maximum sign-in attempts exceeded')
         rval = 'undefined'
     elif isAuth(message):
         reply = Reply("Thanks for signing in. What can I do for you?")
         rval = 'echo'
     else:
-        reply = Reply("I'm sorry, I didn't recongize that code. You have {5-counter} attempts left. Could you try again?")
+        reply = Reply(f"I'm sorry, I didn't recongize that code. You have {5-counter} attempts left. Could you try again?")
         rval = 'auth'
     return reply, rval
       
@@ -137,3 +139,14 @@ chatstate = ChatState(stateMachine,
 if not chatstate.verifyState():
     raise Exception('Incomplete initialization of chatstate')
 
+async def main():
+    client_id="local:testuser"
+    while True:
+        user_input = input("Enter a prompt: ")
+        print()
+        await chatstate.nextInput(client_id,user_input)
+
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
